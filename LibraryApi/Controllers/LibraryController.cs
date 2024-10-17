@@ -20,18 +20,20 @@ namespace LibraryApi.Controllers
 
         // POST /library/borrow
         [HttpPost("borrow")]
-        public async Task<IActionResult> BorrowBook([FromBody] BorrowRequest request)
+        public async Task<IActionResult> BorrowBook([FromQuery] Guid? userId, [FromQuery] Guid? bookId)
         {
-            var userId = request.UserId;
-            var bookId = request.BookId;
+            if (userId == null || bookId == null)
+            {
+                return BadRequest("Query-parametrarna 'userId' och 'bookId' är obligatoriska.");
+            }
 
             var user = await _context.Users
                 .Include(u => u.BorrowRecords)
-                .FirstOrDefaultAsync(u => u.Id == userId);
+                .FirstOrDefaultAsync(u => u.Id == userId.Value);
 
             var book = await _context.Books
                 .Include(b => b.BorrowRecords)
-                .FirstOrDefaultAsync(b => b.Id == bookId);
+                .FirstOrDefaultAsync(b => b.Id == bookId.Value);
 
             if (user == null)
                 return NotFound("Användaren hittades inte.");
@@ -50,8 +52,8 @@ namespace LibraryApi.Controllers
             // Skapa ett nytt lånepost
             var borrowRecord = new BorrowRecord
             {
-                UserId = userId,
-                BookId = bookId,
+                UserId = userId.Value,
+                BookId = bookId.Value,
                 BorrowedAt = DateTime.UtcNow
             };
 
@@ -63,15 +65,18 @@ namespace LibraryApi.Controllers
             return Ok("Boken har lånats ut.");
         }
 
+
         // POST /library/return
         [HttpPost("return")]
-        public async Task<IActionResult> ReturnBook([FromBody] BorrowRequest request)
+        public async Task<IActionResult> ReturnBook([FromQuery] Guid? userId, [FromQuery] Guid? bookId)
         {
-            var userId = request.UserId;
-            var bookId = request.BookId;
+            if (userId == null || bookId == null)
+            {
+                return BadRequest("Query-parametrarna 'userId' och 'bookId' är obligatoriska.");
+            }
 
             var borrowRecord = await _context.BorrowRecords
-                .FirstOrDefaultAsync(br => br.UserId == userId && br.BookId == bookId && br.ReturnedAt == null);
+                .FirstOrDefaultAsync(br => br.UserId == userId.Value && br.BookId == bookId.Value && br.ReturnedAt == null);
 
             if (borrowRecord == null)
                 return BadRequest("Denna bok är inte utlånad till denna användare.");
@@ -79,7 +84,7 @@ namespace LibraryApi.Controllers
             borrowRecord.ReturnedAt = DateTime.UtcNow;
 
             // Uppdatera tillgängliga kopior
-            var book = await _context.Books.FirstOrDefaultAsync(b => b.Id == bookId);
+            var book = await _context.Books.FirstOrDefaultAsync(b => b.Id == bookId.Value);
             if (book != null)
             {
                 book.AvailableCopies += 1;
@@ -89,5 +94,6 @@ namespace LibraryApi.Controllers
 
             return Ok("Boken har lämnats tillbaka.");
         }
+
     }
 }

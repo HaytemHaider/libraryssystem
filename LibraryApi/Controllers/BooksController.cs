@@ -95,6 +95,33 @@ namespace LibraryApi.Controllers
             return Ok("Antalet exemplar för boken har uppdaterats.");
         }
 
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteBook(Guid id, [FromQuery] bool force = false)
+        {
+            var book = await _context.Books
+                .Include(b => b.BorrowRecords.Where(br => br.ReturnedAt == null))
+                .FirstOrDefaultAsync(b => b.Id == id);
+
+            if (book == null)
+            {
+                return NotFound("Boken hittades inte.");
+            }
+
+            // Kolla om det finns utlånade exemplar
+            int currentlyBorrowed = book.BorrowRecords.Count();
+
+            if (currentlyBorrowed > 0 && !force)
+            {
+                return BadRequest($"Kan inte ta bort boken eftersom {currentlyBorrowed} exemplar är utlånade. Använd force-flaggan för att tvinga borttagning.");
+            }
+
+            // Ta bort boken (relaterade BorrowRecords tas bort via cascading delete)
+            _context.Books.Remove(book);
+
+            await _context.SaveChangesAsync();
+
+            return Ok("Boken har tagits bort.");
+        }
 
     }
 }

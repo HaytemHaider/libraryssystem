@@ -18,16 +18,18 @@ namespace LibraryApi.Data
                 .HasIndex(b => b.Barcode)
                 .IsUnique();
 
-            // Relationer
+            // Relationer och cascading deletes
             modelBuilder.Entity<BorrowRecord>()
                 .HasOne(br => br.User)
                 .WithMany(u => u.BorrowRecords)
-                .HasForeignKey(br => br.UserId);
+                .HasForeignKey(br => br.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<BorrowRecord>()
                 .HasOne(br => br.Book)
                 .WithMany(b => b.BorrowRecords)
-                .HasForeignKey(br => br.BookId);
+                .HasForeignKey(br => br.BookId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
-}
+    }
 }
