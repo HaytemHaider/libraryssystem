@@ -5,6 +5,8 @@ VisualStudioVersion = 17.5.002.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LibraryApi", "LibraryApi\LibraryApi.csproj", "{2A4CD4F2-06C7-4926-BBC3-1B3755C8FBFD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibraryApi.Tests", "LibraryApi.Tests\LibraryApi.Tests.csproj", "{BFA2E59B-C420-492C-A62B-07B149CA13A8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{2A4CD4F2-06C7-4926-BBC3-1B3755C8FBFD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2A4CD4F2-06C7-4926-BBC3-1B3755C8FBFD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2A4CD4F2-06C7-4926-BBC3-1B3755C8FBFD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BFA2E59B-C420-492C-A62B-07B149CA13A8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BFA2E59B-C420-492C-A62B-07B149CA13A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BFA2E59B-C420-492C-A62B-07B149CA13A8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BFA2E59B-C420-492C-A62B-07B149CA13A8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

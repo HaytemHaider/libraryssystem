@@ -24,6 +24,24 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+// Skapa ett tjänstscope för att hantera DbContext
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+
+    try
+    {
+        var context = services.GetRequiredService<LibraryContext>();
+        context.Database.Migrate(); // Detta applicerar alla migrationer
+    }
+    catch (Exception ex)
+    {
+        // Hantera eventuella fel vid databasskapandet
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Ett fel inträffade vid skapandet av databasen.");
+    }
+}
+
 // Configure the HTTP request pipeline.
 
 app.UseHttpsRedirection();

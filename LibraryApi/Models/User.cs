@@ -4,13 +4,13 @@ using System.ComponentModel.DataAnnotations;
 namespace LibraryApi.Models
 {
     public class User
-{
-    [Key]
-    public int Id { get; set; } // Unikt ID
+    {
+        [Key]
+        public Guid Id { get; set; }
 
-    [Required]
-    public string Name { get; set; }
+        [Required]
+        public required string Name { get; set; }
 
-    public ICollection<Book> BorrowedBooks { get; set; } = new List<Book>();
-}
+        public ICollection<BorrowRecord> BorrowRecords { get; set; } = new List<BorrowRecord>();
+    }
 }

@@ -13,24 +13,31 @@ namespace LibraryApi.Controllers
 
         public BooksController(LibraryContext context)
         {
-            _context = context;
+            _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
         // GET /books
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Book>>> GetBooks()
         {
-            return await _context.Books.Include(b => b.Borrower).ToListAsync();
+            var books = await _context.Books
+                .Include(b => b.BorrowRecords)
+                    .ThenInclude(br => br.User)
+                .ToListAsync();
+            return Ok(books);
         }
 
         // POST /books
         [HttpPost]
         public async Task<ActionResult<Book>> AddBook(Book book)
         {
-            if (_context.Books.Any(b => b.Id == book.Id))
+            if (_context.Books.Any(b => b.Barcode == book.Barcode))
             {
-                return BadRequest("Bok-ID måste vara unikt.");
+                return BadRequest("Streckkoden måste vara unik.");
             }
+
+            book.Id = Guid.NewGuid();
+            book.AvailableCopies = book.TotalCopies;
 
             _context.Books.Add(book);
             await _context.SaveChangesAsync();
