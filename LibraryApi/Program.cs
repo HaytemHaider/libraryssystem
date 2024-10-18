@@ -1,4 +1,8 @@
 using LibraryApi.Data;
+using LibraryApi.Repositories.Implementation;
+using LibraryApi.Repositories.Interfaces;
+using LibraryApi.Services.Implementations;
+using LibraryApi.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,6 +24,15 @@ builder.Services.AddDbContext<LibraryContext>(options =>
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+//Dependency Injection
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IBookRepository, BookRepository>();
+builder.Services.AddScoped<IBorrowRecordRepository, BorrowRecordRepository>();
+
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IBookService, BookService>();
+builder.Services.AddScoped<ILibraryService, LibraryService>();
 
 
 var app = builder.Build();

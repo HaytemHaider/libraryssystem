@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using LibraryApi.Data;
 using LibraryApi.Models;
+using LibraryApi.Services.Interfaces;
 
 namespace LibraryApi.Controllers
 {
@@ -9,43 +8,36 @@ namespace LibraryApi.Controllers
     [Route("api/[controller]")]
     public class BooksController : ControllerBase
     {
-        private readonly LibraryContext _context;
+        private readonly IBookService _bookService;
 
-        public BooksController(LibraryContext context)
+        public BooksController(IBookService bookService)
         {
-            _context = context ?? throw new ArgumentNullException(nameof(context));
+            _bookService = bookService;
         }
 
-        //TODO paginate
         // GET /books
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Book>>> GetBooks()
         {
-            var books = await _context.Books
-                .Include(b => b.BorrowRecords)
-                    .ThenInclude(br => br.User)
-                .ToListAsync();
+            var books = await _bookService.GetAllBooksAsync();
             return Ok(books);
         }
 
         // POST /books
         [HttpPost]
-        public async Task<ActionResult<Book>> AddBook(Book book)
+        public async Task<ActionResult> AddBook([FromBody] Book book)
         {
-            if (_context.Books.Any(b => b.Barcode == book.Barcode))
+            var result = await _bookService.AddBookAsync(book);
+
+            if (!result.Success)
             {
-                return BadRequest("Streckkoden måste vara unik.");
+                return BadRequest(result.Message);
             }
-
-            book.Id = Guid.NewGuid();
-            book.AvailableCopies = book.TotalCopies;
-
-            _context.Books.Add(book);
-            await _context.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetBooks), new { id = book.Id }, book);
         }
 
+        // PATCH /books/update-count/{barcode}
         [HttpPatch("update-count/{barcode}")]
         public async Task<IActionResult> UpdateBookCount(string barcode, [FromQuery] int? newTotalCopies)
         {
@@ -54,74 +46,29 @@ namespace LibraryApi.Controllers
                 return BadRequest("Query-parametern 'newTotalCopies' är obligatorisk.");
             }
 
-            if (newTotalCopies < 0)
+            var result = await _bookService.UpdateBookCountAsync(barcode, newTotalCopies.Value);
+
+            if (!result.Success)
             {
-                return BadRequest("Ogiltig indata. 'newTotalCopies' måste vara 0 eller större.");
+                return BadRequest(result.Message);
             }
 
-            var book = await _context.Books
-                .Include(b => b.BorrowRecords.Where(br => br.ReturnedAt == null))
-                .FirstOrDefaultAsync(b => b.Barcode == barcode);
-
-            if (book == null)
-            {
-                return NotFound("Bok med angiven streckkod hittades inte.");
-            }
-
-            // Antal exemplar som för närvarande är utlånade
-            int currentlyBorrowed = book.BorrowRecords.Count();
-
-            if (newTotalCopies < currentlyBorrowed)
-            {
-                int difference = currentlyBorrowed - newTotalCopies.Value;
-                return BadRequest($"Det totala antalet exemplar kan inte vara mindre än antalet utlånade exemplar ({currentlyBorrowed}). " +
-                    $"Det saknas {difference} exemplar för att täcka de utlånade böckerna.");
-            }
-
-            // Uppdatera total och tillgängliga exemplar
-            int differenceInTotalCopies = newTotalCopies.Value - book.TotalCopies;
-            book.TotalCopies = newTotalCopies.Value;
-            book.AvailableCopies += differenceInTotalCopies;
-
-            // Kontrollera om AvailableCopies är negativt efter uppdateringen
-            if (book.AvailableCopies < 0)
-            {
-                int missingCopies = -book.AvailableCopies;
-                return BadRequest($"Fel: Antalet tillgängliga exemplar blev negativt. Det saknas {missingCopies} exemplar för att matcha de utlånade böckerna.");
-            }
-
-            await _context.SaveChangesAsync();
-
-            return Ok("Antalet exemplar för boken har uppdaterats.");
+            return Ok(result.Message);
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteBook(Guid id, [FromQuery] bool force = false)
+        // DELETE /books/{barcode}
+        [HttpDelete("{barcode}")]
+        public async Task<IActionResult> DeleteBook(string barcode, [FromQuery] bool force = false)
         {
-            var book = await _context.Books
-                .Include(b => b.BorrowRecords.Where(br => br.ReturnedAt == null))
-                .FirstOrDefaultAsync(b => b.Id == id);
+            var result = await _bookService.DeleteBookAsync(barcode, force);
 
-            if (book == null)
+            if (!result.Success)
             {
-                return NotFound("Boken hittades inte.");
+                return BadRequest(result.Message);
             }
 
-            // Kolla om det finns utlånade exemplar
-            int currentlyBorrowed = book.BorrowRecords.Count();
-
-            if (currentlyBorrowed > 0 && !force)
-            {
-                return BadRequest($"Kan inte ta bort boken eftersom {currentlyBorrowed} exemplar är utlånade. Använd force-flaggan för att tvinga borttagning.");
-            }
-
-            // Ta bort boken (relaterade BorrowRecords tas bort via cascading delete)
-            _context.Books.Remove(book);
-
-            await _context.SaveChangesAsync();
-
-            return Ok("Boken har tagits bort.");
+            return Ok(result.Message);
         }
-
     }
+
 }

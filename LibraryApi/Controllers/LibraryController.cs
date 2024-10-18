@@ -1,8 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using LibraryApi.Models;
-using LibraryApi.Data;
-using LibraryApi.Dto;
+using LibraryApi.Services.Interfaces;
 
 
 namespace LibraryApi.Controllers
@@ -11,93 +8,77 @@ namespace LibraryApi.Controllers
     [Route("api/[controller]")]
     public class LibraryController : ControllerBase
     {
-        private readonly LibraryContext _context;
+        private readonly ILibraryService _libraryService;
 
-        public LibraryController(LibraryContext context)
+        public LibraryController(ILibraryService libraryService)
         {
-            _context = context ?? throw new ArgumentNullException(nameof(context));
+            _libraryService = libraryService;
         }
 
         // POST /library/borrow
         [HttpPost("borrow")]
         public async Task<IActionResult> BorrowBook([FromQuery] Guid? userId, [FromQuery] string barcode)
         {
-            if (userId == null || string.IsNullOrEmpty(barcode))
+            if (userId == null || string.IsNullOrWhiteSpace(barcode))
             {
                 return BadRequest("Query-parametrarna 'userId' och 'barcode' är obligatoriska.");
             }
 
-            var user = await _context.Users
-                .Include(u => u.BorrowRecords)
-                .FirstOrDefaultAsync(u => u.Id == userId.Value);
+            var result = await _libraryService.BorrowBookAsync(userId.Value, barcode);
 
-            var book = await _context.Books
-                .Include(b => b.BorrowRecords)
-                .FirstOrDefaultAsync(b => b.Barcode == barcode);
-
-            if (user == null)
-                return NotFound("Användaren hittades inte.");
-
-            if (book == null)
-                return NotFound("Boken hittades inte.");
-
-            var activeBorrowings = user.BorrowRecords.Count(br => br.ReturnedAt == null);
-
-            if (activeBorrowings >= 3)
-                return BadRequest("Användaren har redan lånat max antal böcker.");
-
-            if (book.AvailableCopies <= 0)
-                return BadRequest("Inga tillgängliga kopior av denna bok.");
-
-            // Skapa ett nytt lånepost
-            var borrowRecord = new BorrowRecord
+            if (!result.Success)
             {
-                Id = Guid.NewGuid(),
-                UserId = userId.Value,
-                BookId = book.Id,
-                BorrowedAt = DateTime.UtcNow
-            };
+                return BadRequest(result.Message);
+            }
 
-            book.AvailableCopies -= 1;
-
-            _context.BorrowRecords.Add(borrowRecord);
-            await _context.SaveChangesAsync();
-
-            return Ok("Boken har lånats ut.");
+            return Ok(result.Message);
         }
-
-
 
         // POST /library/return
         [HttpPost("return")]
         public async Task<IActionResult> ReturnBook([FromQuery] Guid? userId, [FromQuery] string barcode)
         {
-            if (userId == null || string.IsNullOrEmpty(barcode))
+            if (userId == null || string.IsNullOrWhiteSpace(barcode))
             {
                 return BadRequest("Query-parametrarna 'userId' och 'barcode' är obligatoriska.");
             }
 
-            var book = await _context.Books.FirstOrDefaultAsync(b => b.Barcode == barcode);
+            var result = await _libraryService.ReturnBookAsync(userId.Value, barcode);
 
-            if (book == null)
-                return NotFound("Boken hittades inte.");
+            if (!result.Success)
+            {
+                return BadRequest(result.Message);
+            }
 
-            var borrowRecord = await _context.BorrowRecords
-                .FirstOrDefaultAsync(br => br.UserId == userId.Value && br.BookId == book.Id && br.ReturnedAt == null);
-
-            if (borrowRecord == null)
-                return BadRequest("Denna bok är inte utlånad till denna användare.");
-
-            borrowRecord.ReturnedAt = DateTime.UtcNow;
-
-            // Uppdatera tillgängliga kopior
-            book.AvailableCopies += 1;
-
-            await _context.SaveChangesAsync();
-
-            return Ok("Boken har lämnats tillbaka.");
+            return Ok(result.Message);
         }
 
+        // GET /library/user-borrows/{userId}
+        [HttpGet("user-borrows/{userId}")]
+        public async Task<IActionResult> GetUserBorrows(Guid userId)
+        {
+            var result = await _libraryService.GetUserBorrowRecordsAsync(userId);
 
+            if (!result.Success)
+            {
+                return NotFound(result.Message);
+            }
+
+            return Ok(result.Data);
+        }
+
+        // GET /library/book-borrows/{barcode}
+        [HttpGet("book-borrows/{barcode}")]
+        public async Task<IActionResult> GetBookBorrows(string barcode)
+        {
+            var result = await _libraryService.GetBookBorrowRecordsAsync(barcode);
+
+            if (!result.Success)
+            {
+                return NotFound(result.Message);
+            }
+
+            return Ok(result.Data);
+        }
     }
 }
