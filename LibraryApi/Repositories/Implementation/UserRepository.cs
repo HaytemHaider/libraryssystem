@@ -28,6 +28,7 @@ namespace LibraryApi.Repositories.Implementation
         {
             return await _context.Users
                 .Include(u => u.BorrowRecords)
+                    .ThenInclude(br => br.Book)
                 .FirstOrDefaultAsync(u => u.Id == userId);
         }
 

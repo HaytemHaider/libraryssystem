@@ -1,4 +1,5 @@
 ﻿using LibraryApi.Data;
+using LibraryApi.Dto;
 using LibraryApi.Models;
 using LibraryApi.Repositories.Interfaces;
 using LibraryApi.Services.Interfaces;
@@ -47,7 +48,9 @@ namespace LibraryApi.Services.Implementations
             {
                 Id = Guid.NewGuid(),
                 UserId = userId,
+                User = user,
                 BookId = book.Id,
+                Book = book,
                 BorrowedAt = DateTime.UtcNow
             };
 
@@ -86,12 +89,13 @@ namespace LibraryApi.Services.Implementations
             if (user == null)
                 return new ServiceResult { Success = false, Message = "Användaren hittades inte." };
 
-            var borrowRecords = user.BorrowRecords.Select(br => new
+            var borrowRecords = user.BorrowRecords.Select(br => new BorrowRecordDto
             {
-                br.Id,
-                br.Book.Title,
-                br.BorrowedAt,
-                br.ReturnedAt
+                Id = br.Id,
+                Title = br.Book.Title,
+                UserName = br.User.Name,
+                BorrowedAt = br.BorrowedAt,
+                ReturnedAt = br.ReturnedAt
             });
 
             return new ServiceResult { Success = true, Data = borrowRecords };
