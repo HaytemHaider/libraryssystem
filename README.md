@@ -4,20 +4,24 @@
 
 1. Klona repositoryt:
 
-2. Gå till API-projektet och kör:
+2. Gå till API-projektet
 
-3. Gå till Angular-projektet och kör:
+``dotnet build``
 
+``dotnet ef migrations add InitialCreate``
+
+``dotnet ef database update``
+
+``dotnet run``
 
 ## Användning
 
 - API:t körs på `http://localhost:5021`.
-- Angular-applikationen körs på `http://localhost:4200`.
 
 ## Testning
 
-- Kör tester för API:t:
-
+- Gå till API.Tests-projektet
+- ``dotnet run``
 
 ## API-dokumentation
 
